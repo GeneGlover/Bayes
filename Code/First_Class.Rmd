@@ -1,0 +1,115 @@
+---
+title: "Bayes 2 Week 1"
+output: html_document
+date: "2025-01-14"
+---
+
+
+
+
+```{r}
+install.packages("brms")
+```
+
+
+```{r}
+install.packages("janitor")
+```
+
+
+```{r}
+install.packages("tidyverse")
+```
+
+
+```{r}
+install.packages("tidybayes")
+```
+
+
+```{r}
+install.packages("rethinking")
+
+```
+
+
+```{r}
+iris %>% as_tibble()
+
+# linear model of petal.length ~ sepal.length, y ~ x, y ~ a + Bx
+model1 <- lm(Petal.Length ~ Sepal.Length, data = iris)
+summary(model1)
+#This shows a significant relationship. ie there is less than .05 probaiblity of getting this t-value equal or greater than 21 given that our null hypothesis (slope = 0) is true. For every unit increase in sepla length, there was a 1.85 +/- .08 increase in petal length. 
+
+iris %>% 
+  ggplot(aes(x = Sepal.Length, y = Petal.Length)) +
+  geom_point() +
+  geom_smooth(method = lm)
+
+
+
+#rethinking
+
+
+iris %>% 
+RTmodel <- quap(
+  alist(
+Petal.Length ~ dnorm(mu, sigma),
+mu = alpha + beta*Sepal.Length,
+beta ~ dnorm(0, 5),
+alpha ~ dnorm(-5, 2),
+sigma ~ dexp(1)),
+data = iris)
+
+#There was a positive relationship between sepal length and petal length (Fig 1). For every unit increase in sepal length, there was a 1.8 =/- .08 increase in petal length. We are 89% confident that the slope is between 1.7 and 1.9.
+
+
+#brms
+
+brmModel <- brm(Petal.Length ~ Sepal.Length,
+                , data = iris,
+                family = Gamma(ling = "log"),
+                prior = c(prior(normal(0,5), class = b),
+                          prior(normal(-5, 2), class = Intercept),
+                          prior(exponential(1), class = sigma)))
+
+brmModel2 <- brm(Petal.Length ~ 1 + Sepal.Length + (1 + Sepal.Length|Species),
+                , data = iris,
+                family = Gamma(link = "log"))
+
+saveRDS(brmModel2, file = "Bayesian/brmModel2.rds")
+
+brmModel2 - readRDS(brmModel2, file = "Bayesian/brmModel2.rds")
+
+summary(brmModel)
+iris_clean = iris %>% clean_names()
+
+
+mod_brm_update = update(brmModel, newdata = iris_clean,
+                        formula = petal_length ~ sepal_length,
+                         prior = c(prior(normal(0,5), class = b),
+                          prior(normal(-5, 2), class = Intercept),
+                          prior(exponential(1), class = sigma)))
+
+plot_data <- plot(conditional_effects(brmModel2), points = T)
+
+plot_data$Sepal.Length:Species +
+  labs(y = "Petal Length (mm)",
+       x = "Sepal Length (mm)")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
